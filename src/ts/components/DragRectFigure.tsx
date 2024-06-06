@@ -30,9 +30,9 @@ const DragRectFigure = (props: Props) => {
             rect.style.cursor = 'move';
             rect.style.pointerEvents = 'all';
             rectRef.current = rect;
-            const svg = plot.querySelector('svg')
-            if (!svg) return;
-            svg.appendChild(rect);
+            const glimages = plot.querySelector('.glimages');
+            if (!glimages) return;
+            glimages.appendChild(rect);
         }
 
         const rect = rectRef.current;
