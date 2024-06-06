@@ -1,0 +1,13 @@
+Package: dashDragrectFigure
+Title: Custom Dash Figure that allows dragging of fixed-size rectangular shapes.
+Version: 1.0.0
+Description: Custom Dash Figure that allows dragging of fixed-size rectangular shapes.
+Depends: R (>= 3.0.2)
+Imports: 
+Suggests: 
+License: MIT + file LICENSE
+URL: https://github.com/DhiraPT/dash-dragrect-figure
+BugReports: https://github.com/DhiraPT/dash-dragrect-figure/issues
+Encoding: UTF-8
+LazyData: true
+KeepSource: true
