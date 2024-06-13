@@ -1,13 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DashComponentProps } from '../props';
 import Plot, { PlotParams } from 'react-plotly.js';
-import { react } from 'plotly.js';
+import Plotly from 'plotly.js';
 
 type Props = {
-    rectColor: string;
-    strokeWidth: number;
     rectWidth: number;
     rectHeight: number;
+    rectColor: string;
+    image: {
+        imageData: string;
+        width: number;
+        height: number;
+    } | null;
     getXY: boolean;
     xy: { x: number, y: number } | null;
 } & DashComponentProps & PlotParams;
@@ -20,94 +24,127 @@ const DragRectFigure = (props: Props) => {
     const {...restProps} = props;
     const plotRef = useRef(null);
     const rectRef = useRef(null);
-    const mouseRef = useRef<{ x: number, y: number } | null>(null);
-    const isDragging = useRef(false);
-    const rectCoordsRef = useRef(null);
     const initialLayout = useRef(null);
-    const beforeDragCoords = useRef(null);
-    const centerXY = useRef(null);
+    const afterImageLayout = useRef(null);
+    const windowWidth = useRef(null);
 
-    /**
-     * Updates the actual rectangle element clientX and clientY with the given coordinates.
-     * @param x0 The x-coordinate of the top-left corner of the rectangle.
-     * @param y0 The y-coordinate of the top-left corner of the rectangle.
-     * @param x1 The x-coordinate of the bottom-right corner of the rectangle.
-     * @param y1 The y-coordinate of the bottom-right corner of the rectangle.
-     */
-    const updateRect = (x0: number, y0: number, x1: number, y1: number) => {
-        const plot = plotRef.current;
-        if (!plot) return;
-
-        rectCoordsRef.current = {x0, y0, x1, y1};
-        const xScale = plot._fullLayout.xaxis._length / (plot._fullLayout.xaxis.range[1] - plot._fullLayout.xaxis.range[0]);
-        const yScale = plot._fullLayout.yaxis._length / (plot._fullLayout.yaxis.range[1] - plot._fullLayout.yaxis.range[0]);
-
-        const x = (x0 - plot._fullLayout.xaxis.range[0]) * xScale + plot._fullLayout.margin.l;
-        const y = plot._fullLayout.height - ((y0 - plot._fullLayout.yaxis.range[0]) * yScale + plot._fullLayout.margin.b);
-        const width = (x1 - x0) * xScale;
-        const height = (y0 - y1) * yScale;
-
-        if (rectRef.current) {
-            rectRef.current.setAttribute('x', String(x));
-            rectRef.current.setAttribute('y', String(y));
-            rectRef.current.setAttribute('width', String(width));
-            rectRef.current.setAttribute('height', String(height));
+    const attachEventListeners = () => {
+        if (!plotRef.current) {
+            return;
         }
         
-    };
+        const shapeGroup = plotRef.current.querySelector('.shape-group');
 
-    const handleMouseDown = (e: { clientX: number; clientY: number; }) => {
-        isDragging.current = true;
-        const plotBBox = plotRef.current.getBoundingClientRect();
-        const x = e.clientX - plotBBox.left;
-        const y = e.clientY - plotBBox.top;
-        mouseRef.current = {x: x, y: y};
+        if (!shapeGroup) {
+            // console.log('Rectangle not drawn.');
+        } else {
+            rectRef.current = shapeGroup.firstChild;
 
-        beforeDragCoords.current = { ...rectCoordsRef.current }
-    };
+            if (rectRef.current) {
+                rectRef.current.style.cursor = 'move';
+                rectRef.current.style.pointerEvents = 'all';
 
-    const handleMouseMove = (e: { clientX: number; clientY: number; }) => {
-        if (isDragging.current && rectRef.current && rectCoordsRef.current) {
-            const plot = plotRef.current;
-            if (!plot) return;
+                rectRef.current.addEventListener('click', handleOnRectClick);
+                plotRef.current.addEventListener('click', handleOnPlotClick);
 
-            const plotBBox = plot.getBoundingClientRect();
-            const x = e.clientX - plotBBox.left;
-            const y = e.clientY - plotBBox.top;
-            const dx = x - mouseRef.current.x;
-            const dy = y - mouseRef.current.y;
+                return () => {
+                    rectRef.current.removeEventListener('click', handleOnRectClick);
+                    plotRef.current.removeEventListener('click', handleOnPlotClick);
+                }
+            }
+        }
+    }
 
-            const newRect = {
-                x0: rectCoordsRef.current.x0 + dx / plot._fullLayout.xaxis._length * (plot._fullLayout.xaxis.range[1] - plot._fullLayout.xaxis.range[0]),
-                y0: rectCoordsRef.current.y0 - dy / plot._fullLayout.yaxis._length * (plot._fullLayout.yaxis.range[1] - plot._fullLayout.yaxis.range[0]),
-                x1: rectCoordsRef.current.x1 + dx / plot._fullLayout.xaxis._length * (plot._fullLayout.xaxis.range[1] - plot._fullLayout.xaxis.range[0]),
-                y1: rectCoordsRef.current.y1 - dy / plot._fullLayout.yaxis._length * (plot._fullLayout.yaxis.range[1] - plot._fullLayout.yaxis.range[0])
-            }; 
+    const removeOutlineControllers = () => {
+        if (!plotRef.current) {
+            return;
+        }
+
+        const outlineControllers = plotRef.current.querySelectorAll('.outline-controllers');
+        if (outlineControllers.length === 0) {
+            // console.log('Outline controllers not found.');
+        } else {
+            if (outlineControllers[0]) {
+                outlineControllers[0].remove();
+            } else {
+                // console.error('Outline controllers[0] not found.');
+            }
+        }
+    }
+
+    const handleOnRectClick = (e) => {
+        setTimeout(() => {
+            removeOutlineControllers();
+        }, 0);
+    }
+
+    const handleOnPlotClick = (e) => {
+        attachEventListeners();
+    }
+
+    const handleResize = () => {
+        if (plotRef.current) {
             
-            updateRect(newRect.x0, newRect.y0, newRect.x1, newRect.y1);
-            mouseRef.current = {x: x, y: y};
+            windowWidth.current = window.innerWidth;
         }
-    };
-
-    const handleMouseUp = () => {
-        if (!isDragging.current) return;
-        isDragging.current = false;
-        
-        const initialXScale = initialLayout.current.xaxis._length / (initialLayout.current.xaxis.range[1] - initialLayout.current.xaxis.range[0]);
-        const initialYScale = initialLayout.current.yaxis._length / (initialLayout.current.yaxis.range[1] - initialLayout.current.yaxis.range[0]);
-
-        const dCenterX = ((rectCoordsRef.current.x0 + rectCoordsRef.current.x1) / 2 - (beforeDragCoords.current.x0 + beforeDragCoords.current.x1) / 2) * initialXScale;
-        const dCenterY = -((rectCoordsRef.current.y0 + rectCoordsRef.current.y1) / 2 - (beforeDragCoords.current.y0 + beforeDragCoords.current.y1) / 2) * initialYScale;
-        
-        const newXY = {x: centerXY.current.x + dCenterX, y: centerXY.current.y + dCenterY};
-        
-        centerXY.current = newXY;
-    };
-
+    }
+    
     useEffect(() => {
-        init();
-        if (!initialLayout.current && plotRef.current) {
-            initialLayout.current = {
+        if (plotRef.current && props.image && !afterImageLayout.current) {
+            const xRange = props.layout.xaxis.range;
+            const yRange = props.layout.yaxis.range;
+
+            const xImageScale = (xRange[1] - xRange[0]) / props.image.width;
+            const yImageScale = (yRange[1] - yRange[0]) / props.image.height;
+
+            props.setProps({
+                layout: {
+                    ...props.layout,
+                    xaxis: {
+                        ...props.layout.xaxis,
+                        showTickLabels: false,
+                        showGrid: false,
+                        zeroLine: false,
+                    },
+                    yaxis: {
+                        ...props.layout.yaxis,
+                        showTickLabels: false,
+                        showGrid: false,
+                        zeroline: false,
+                    },
+                    margin: {
+                        l: 0,
+                        r: 0,
+                        b: 0,
+                        t: 0,
+                        pad: 0
+                    },
+                    images: [{
+                        source: props.image.imageData,
+                        xref: 'x',
+                        yref: 'y',
+                        x: props.layout.xaxis.range[0],
+                        y: props.layout.yaxis.range[1],
+                        sizex: props.layout.xaxis.range[1] - props.layout.xaxis.range[0],
+                        sizey: props.layout.yaxis.range[1] - props.layout.yaxis.range[0],
+                    }],
+                    shapes: [{
+                        type: 'rect',
+                        xref: 'x',
+                        yref: 'y',
+                        x0: (xRange[0] + xRange[1]) / 2 - props.rectWidth * xImageScale / 2,
+                        y0: (yRange[0] + yRange[1]) / 2 + props.rectHeight * yImageScale / 2,
+                        x1: (xRange[0] + xRange[1]) / 2 + props.rectWidth * xImageScale / 2,
+                        y1: (yRange[0] + yRange[1]) / 2 - props.rectHeight * yImageScale / 2,
+                        line: {
+                            color: props.rectColor,
+                        },
+                        editable: true,
+                    }]
+                }
+            });
+
+            afterImageLayout.current = {
                 xaxis: {
                     range: JSON.parse(JSON.stringify(plotRef.current._fullLayout.xaxis.range)),
                     _length: plotRef.current._fullLayout.xaxis._length
@@ -117,71 +154,64 @@ const DragRectFigure = (props: Props) => {
                     _length: plotRef.current._fullLayout.yaxis._length
                 }
             }
+        } else if (initialLayout.current) {
+            // console.log('Reset layout', initialLayout.current);
+            rectRef.current = null;
+            afterImageLayout.current = null;
+            // Reset layout when image is removed
+            props.setProps({
+                layout: initialLayout.current
+            });
         }
-    }, [plotRef]);
+    }, [props.image]);
 
-    const init = () => {
-        const plot = plotRef.current;
-        if (!plot || (rectRef.current && rectCoordsRef.current)) return;
-
-        const xCoord = (plot._fullLayout.xaxis.range[0] + plot._fullLayout.xaxis.range[1]) / 2;
-        const yCoord = (plot._fullLayout.yaxis.range[0] + plot._fullLayout.yaxis.range[1]) / 2;
-
-        const xScale = plot._fullLayout.xaxis._length / (plot._fullLayout.xaxis.range[1] - plot._fullLayout.xaxis.range[0]);
-        const yScale = plot._fullLayout.yaxis._length / (plot._fullLayout.yaxis.range[1] - plot._fullLayout.yaxis.range[0]);
-
-        const newRect = {
-            x0: xCoord - props.rectWidth / 2 / xScale,
-            y0: yCoord + props.rectHeight / 2 / yScale,
-            x1: xCoord + props.rectWidth / 2 / xScale,
-            y1: yCoord - props.rectHeight / 2 / yScale
-        };
-
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('fill', 'none');
-        rect.setAttribute('stroke', props.rectColor);
-        rect.setAttribute('stroke-width', props.strokeWidth.toString());
-        rect.style.cursor = 'move';
-        rect.style.pointerEvents = 'all';
-        rectRef.current = rect;
-        const glimages = plot.querySelector('.glimages');
-        
-        if (glimages) {
-            glimages.appendChild(rect);
-            rectRef.current.addEventListener('mousedown', handleMouseDown);
-            rectRef.current.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
+    useLayoutEffect(() => {
+        if (plotRef.current && props.layout.shapes && !rectRef.current) {
+            // Using a timeout to ensure all DOM mutations are complete
+            setTimeout(() => {
+                attachEventListeners();
+            }, 0);
         }
+    }, [props.layout.shapes]);
 
-        updateRect(newRect.x0, newRect.y0, newRect.x1, newRect.y1);
-        centerXY.current = {
-            x: (xCoord - plot._fullLayout.xaxis.range[0]) * xScale + plot._fullLayout.margin.l,
-            y: plot._fullLayout.height - ((yCoord - plot._fullLayout.yaxis.range[0]) * yScale + plot._fullLayout.margin.b)
-        };
-    };
+    const handleInitialized = (figure, graphDiv) => {
+        // console.log('Initialized');
+        plotRef.current = graphDiv;
+        initialLayout.current = JSON.parse(JSON.stringify(props.layout));
+        windowWidth.current = window.innerWidth;
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        }
+    }
 
     const handleRelayout = (event) => {
-        if (rectCoordsRef.current) {
-            updateRect(rectCoordsRef.current.x0, rectCoordsRef.current.y0, rectCoordsRef.current.x1, rectCoordsRef.current.y1);
-        }
-    };
+        // Reattach event listeners after a relayout event
+        attachEventListeners();
+        // Remove outline controllers after a relayout event
+        removeOutlineControllers();
+    }
 
     useEffect(() => {
         if (props.getXY) {
-            const xy = centerXY.current;
-            props.setProps({xy: xy});
+            if (rectRef.current && afterImageLayout.current) {
+                const xy = {
+                    x: (Number(props.layout.shapes[0].x0) + Number(props.layout.shapes[0].x1)) / 2,
+                    y: (Number(props.layout.shapes[0].y0) + Number(props.layout.shapes[0].y1)) / 2
+                };
+                
+                const xFactor = (afterImageLayout.current.xaxis.range[1] - afterImageLayout.current.xaxis.range[0]) / afterImageLayout.current.xaxis._length;
+                const yFactor = (afterImageLayout.current.yaxis.range[1] - afterImageLayout.current.yaxis.range[0]) / afterImageLayout.current.yaxis._length;
+                
+                props.setProps({xy: {x: (xy.x - afterImageLayout.current.xaxis.range[0]) / xFactor, y: (afterImageLayout.current.yaxis.range[1] - xy.y) / yFactor}});
+            }
             props.setProps({getXY: false});
         }
     }, [props.getXY]);
 
     return (
         <Plot
-            onInitialized={(figure, graphDiv) => {
-                plotRef.current = graphDiv;
-            }}
-            onUpdate={(figure, graphDiv) => {
-                plotRef.current = graphDiv;
-            }}
+            onInitialized={handleInitialized}
             onRelayout={handleRelayout}
             {...restProps}
         />
@@ -189,12 +219,12 @@ const DragRectFigure = (props: Props) => {
 }
 
 DragRectFigure.defaultProps = {
-    rectColor: 'red',
-    strokeWidth: 2,
     rectWidth: 200,
     rectHeight: 200,
+    rectColor: 'black',
+    image: null,
     getXY: false,
-    xy: null
+    xy: null,
 };
 
 export default DragRectFigure;
