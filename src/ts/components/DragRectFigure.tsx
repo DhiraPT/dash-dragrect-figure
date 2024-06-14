@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DashComponentProps } from '../props';
 import Plot, { PlotParams } from 'react-plotly.js';
 import Plotly from 'plotly.js';
+import { useResizeDetector } from 'react-resize-detector';
 
 type Props = {
     rectWidth: number;
@@ -26,7 +27,7 @@ const DragRectFigure = (props: Props) => {
     const rectRef = useRef(null);
     const initialLayout = useRef(null);
     const afterImageLayout = useRef(null);
-    const windowWidth = useRef(null);
+    const { width, height, ref } = useResizeDetector();
 
     const attachEventListeners = () => {
         if (!plotRef.current) {
@@ -81,13 +82,6 @@ const DragRectFigure = (props: Props) => {
     const handleOnPlotClick = (e) => {
         attachEventListeners();
     }
-
-    const handleResize = () => {
-        if (plotRef.current) {
-            
-            windowWidth.current = window.innerWidth;
-        }
-    }
     
     useEffect(() => {
         if (plotRef.current && props.image && !afterImageLayout.current) {
@@ -96,6 +90,11 @@ const DragRectFigure = (props: Props) => {
 
             const xImageScale = (xRange[1] - xRange[0]) / props.image.width;
             const yImageScale = (yRange[1] - yRange[0]) / props.image.height;
+
+            const x0 = props.xy ? xRange[0] + (props.xy.x - props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 - props.rectWidth * xImageScale / 2;
+            const y0 = props.xy ? yRange[1] - (props.xy.y - props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 + props.rectHeight * yImageScale / 2;
+            const x1 = props.xy ? xRange[0] + (props.xy.x + props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 + props.rectWidth * xImageScale / 2;
+            const y1 = props.xy ? yRange[1] - (props.xy.y + props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 - props.rectHeight * yImageScale / 2;
 
             props.setProps({
                 layout: {
@@ -132,10 +131,10 @@ const DragRectFigure = (props: Props) => {
                         type: 'rect',
                         xref: 'x',
                         yref: 'y',
-                        x0: (xRange[0] + xRange[1]) / 2 - props.rectWidth * xImageScale / 2,
-                        y0: (yRange[0] + yRange[1]) / 2 + props.rectHeight * yImageScale / 2,
-                        x1: (xRange[0] + xRange[1]) / 2 + props.rectWidth * xImageScale / 2,
-                        y1: (yRange[0] + yRange[1]) / 2 - props.rectHeight * yImageScale / 2,
+                        x0: x0,
+                        y0: y0,
+                        x1: x1,
+                        y1: y1,
                         line: {
                             color: props.rectColor,
                         },
@@ -177,12 +176,11 @@ const DragRectFigure = (props: Props) => {
     const handleInitialized = (figure, graphDiv) => {
         // console.log('Initialized');
         plotRef.current = graphDiv;
-        initialLayout.current = JSON.parse(JSON.stringify(props.layout));
-        windowWidth.current = window.innerWidth;
-        window.addEventListener('resize', handleResize);
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        }
+        initialLayout.current = {
+            ...JSON.parse(JSON.stringify(props.layout)),
+            width: graphDiv.clientWidth,
+            height: graphDiv.clientHeight,
+        };
     }
 
     const handleRelayout = (event) => {
@@ -209,12 +207,39 @@ const DragRectFigure = (props: Props) => {
         }
     }, [props.getXY]);
 
+    useEffect(() => {
+        if (!plotRef.current) {
+            return;
+        }
+
+        const aspectRatio = initialLayout.current.height / initialLayout.current.width;
+        const calculatedHeight = width * aspectRatio;
+
+        props.setProps({
+            layout: {
+                ...props.layout,
+                xaxis: {
+                    ...props.layout.xaxis,
+                    range: JSON.parse(JSON.stringify(props.layout.xaxis.range)),
+                },
+                yaxis: {
+                    ...props.layout.yaxis,
+                    range: JSON.parse(JSON.stringify(props.layout.yaxis.range)),
+                },
+                width: width,
+                height: calculatedHeight,
+            }
+        });
+    }, [width]);
+
     return (
-        <Plot
-            onInitialized={handleInitialized}
-            onRelayout={handleRelayout}
-            {...restProps}
-        />
+        <div ref={ref} style={{ width: '100%', height: '100%' }}>
+            <Plot
+                onInitialized={handleInitialized}
+                onRelayout={handleRelayout}
+                {...restProps}
+            />
+        </div>
     )
 }
 

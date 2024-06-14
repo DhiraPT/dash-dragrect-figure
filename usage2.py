@@ -28,8 +28,9 @@ app.layout = dbc.Container(children=[
                         'b': 0,
                         't': 0,
                         'pad': 0
-                    }
+                    },
                 },
+                xy={'x': 200, 'y': 200},
                 style={'width': '100%', 'aspectRatio': '4208/3120'},
             ),
             html.Div(id='modal-container')
