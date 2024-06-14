@@ -158,8 +158,14 @@ const DragRectFigure = (props: Props) => {
             rectRef.current = null;
             afterImageLayout.current = null;
             // Reset layout when image is removed
+            const aspectRatio = initialLayout.current.height / initialLayout.current.width;
+            const calculatedHeight = width * aspectRatio;
             props.setProps({
-                layout: initialLayout.current
+                layout: {
+                    ...initialLayout.current,
+                    width: width,
+                    height: calculatedHeight,
+                }
             });
         }
     }, [props.image]);
