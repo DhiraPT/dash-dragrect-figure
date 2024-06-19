@@ -82,6 +82,15 @@ const DragRectFigure = (props: Props) => {
     const handleOnPlotClick = (e) => {
         attachEventListeners();
     }
+
+    const calculateHeight = (width: number) => {
+        if (!initialLayout.current) {
+            return height;
+        }
+
+        const aspectRatio = initialLayout.current.height / initialLayout.current.width;
+        return width * aspectRatio;
+    }
     
     useEffect(() => {
         if (plotRef.current && props.image && !afterImageLayout.current) {
@@ -158,13 +167,11 @@ const DragRectFigure = (props: Props) => {
             rectRef.current = null;
             afterImageLayout.current = null;
             // Reset layout when image is removed
-            const aspectRatio = initialLayout.current.height / initialLayout.current.width;
-            const calculatedHeight = width * aspectRatio;
             props.setProps({
                 layout: {
                     ...initialLayout.current,
                     width: width,
-                    height: calculatedHeight,
+                    height: calculateHeight(width),
                 }
             });
         }
@@ -197,6 +204,8 @@ const DragRectFigure = (props: Props) => {
     }
 
     const handleOnUpdate = (figure) => {
+        // Reattach event listeners after an update event
+        attachEventListeners();
         // Remove outline controllers after an update event
         removeOutlineControllers();
     }
@@ -223,9 +232,6 @@ const DragRectFigure = (props: Props) => {
             return;
         }
 
-        const aspectRatio = initialLayout.current.height / initialLayout.current.width;
-        const calculatedHeight = width * aspectRatio;
-
         props.setProps({
             layout: {
                 ...props.layout,
@@ -238,7 +244,7 @@ const DragRectFigure = (props: Props) => {
                     range: JSON.parse(JSON.stringify(props.layout.yaxis.range)),
                 },
                 width: width,
-                height: calculatedHeight,
+                height: calculateHeight(width),
             }
         });
     }, [width]);
