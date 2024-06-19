@@ -196,6 +196,11 @@ const DragRectFigure = (props: Props) => {
         removeOutlineControllers();
     }
 
+    const handleOnUpdate = (figure) => {
+        // Remove outline controllers after an update event
+        removeOutlineControllers();
+    }
+
     useEffect(() => {
         if (props.getXY) {
             if (rectRef.current && afterImageLayout.current) {
@@ -204,10 +209,10 @@ const DragRectFigure = (props: Props) => {
                     y: (Number(props.layout.shapes[0].y0) + Number(props.layout.shapes[0].y1)) / 2
                 };
                 
-                const xFactor = (afterImageLayout.current.xaxis.range[1] - afterImageLayout.current.xaxis.range[0]) / afterImageLayout.current.xaxis._length;
-                const yFactor = (afterImageLayout.current.yaxis.range[1] - afterImageLayout.current.yaxis.range[0]) / afterImageLayout.current.yaxis._length;
+                const xImageScale = (afterImageLayout.current.xaxis.range[1] - afterImageLayout.current.xaxis.range[0]) / props.image.width;
+                const yImageScale = (afterImageLayout.current.yaxis.range[1] - afterImageLayout.current.yaxis.range[0]) / props.image.height;
                 
-                props.setProps({xy: {x: (xy.x - afterImageLayout.current.xaxis.range[0]) / xFactor, y: (afterImageLayout.current.yaxis.range[1] - xy.y) / yFactor}});
+                props.setProps({xy: {x: (xy.x - afterImageLayout.current.xaxis.range[0]) / xImageScale, y: (afterImageLayout.current.yaxis.range[1] - xy.y) / yImageScale}});
             }
             props.setProps({getXY: false});
         }
@@ -242,6 +247,7 @@ const DragRectFigure = (props: Props) => {
         <div ref={ref} style={{ width: '100%', height: '100%' }}>
             <Plot
                 onInitialized={handleInitialized}
+                onUpdate={handleOnUpdate}
                 onRelayout={handleRelayout}
                 {...restProps}
             />
