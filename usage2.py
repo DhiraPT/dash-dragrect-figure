@@ -13,23 +13,6 @@ app.layout = dbc.Container(children=[
         dbc.CardBody(children=[
             dash_dragrect_figure.DragRectFigure(
                 id='component',
-                data=[],
-                layout={
-                    'xaxis': {
-                        'scaleratio': 1,
-                    },
-                    'yaxis': {
-                        'scaleratio': 1,
-                        'scaleanchor': 'x',
-                    },
-                    'margin': {
-                        'l': 0,
-                        'r': 0,
-                        'b': 0,
-                        't': 0,
-                        'pad': 0
-                    },
-                },
                 xy={'x': 200, 'y': 200},
                 style={'width': '100%', 'aspectRatio': '4208/3120'},
             ),
@@ -39,6 +22,7 @@ app.layout = dbc.Container(children=[
         html.Div(id='output'),
         dbc.Button('Add', id='btn-add', color='primary', className='me-2'),
         dbc.Button('Edit', id='btn-edit', color='primary'),
+        dbc.Button('Add Rect', id='btn-add-rect', color='primary', className='ms-2'),
         dbc.Button('Get XY', id='get-xy-button', color='primary'),
     ])
 ])])
@@ -46,30 +30,40 @@ app.layout = dbc.Container(children=[
 
 @app.callback(
     Output('component', 'image', allow_duplicate=True),
+    Output('component', 'isWithRect'),
     Input('btn-add', 'n_clicks'),
+    Input('btn-add-rect', 'n_clicks'),
     prevent_initial_call=True,
 )
-def update_image_display(n_clicks):
-    image_filename = r'C:\Coding Projects\aikeeper-v2\algorithm\align\template_images\AM-FC-01\20230926-085311_8I  008884_AM-FC-01.jpg'
-    if n_clicks%2 == 1:
-        # Read the image file into memory
-        with open(image_filename, 'rb') as image_file:
-            image_data = image_file.read()
-        
-        # Open the image from memory
-        img = Image.open(io.BytesIO(image_data))
-        
-        # Get the image size
-        width, height = img.size
-        
-        # Encode the image to base64
-        encoded_image = base64.b64encode(image_data).decode('ascii')
-        image_data = f'data:image/jpg;base64,{encoded_image}'
-        
-        # Return the image data along with its size
-        return {'imageData': image_data, 'width': width, 'height': height}
-    elif n_clicks%2 == 0:
-        return None
+def update_image_display(n_clicks, n_clicks_rect):
+    image_filename = r'C:\dash_dragrect_figure\20230926-085311_8I  008884_AM-FC-01.jpg'
+    ctx = dash.callback_context
+    if ctx.triggered_id == 'btn-add':
+        if n_clicks%2 == 1:
+            # Read the image file into memory
+            with open(image_filename, 'rb') as image_file:
+                image_data = image_file.read()
+            
+            # Open the image from memory
+            img = Image.open(io.BytesIO(image_data))
+            
+            # Get the image size
+            width, height = img.size
+            
+            # Encode the image to base64
+            encoded_image = base64.b64encode(image_data).decode('ascii')
+            image_data = f'data:image/jpg;base64,{encoded_image}'
+            
+            # Return the image data along with its size
+            return {'imageData': image_data, 'width': width, 'height': height}, dash.no_update
+        elif n_clicks%2 == 0:
+            return None, False
+    elif ctx.triggered_id == 'btn-add-rect':
+        if n_clicks_rect%2 == 1:
+            return dash.no_update, True
+        elif n_clicks_rect%2 == 0:
+            return dash.no_update, False
+    return dash.no_update, dash.no_update
 
 
 # @app.callback(

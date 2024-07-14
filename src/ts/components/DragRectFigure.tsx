@@ -5,6 +5,7 @@ import Plotly from 'plotly.js';
 import { useResizeDetector } from 'react-resize-detector';
 
 type Props = {
+    isWithRect: boolean;
     rectWidth: number;
     rectHeight: number;
     rectColor: string;
@@ -26,7 +27,6 @@ const DragRectFigure = (props: Props) => {
     const plotRef = useRef(null);
     const rectRef = useRef(null);
     const initialLayout = useRef(null);
-    const afterImageLayout = useRef(null);
     const { width, height, ref } = useResizeDetector();
 
     const attachEventListeners = () => {
@@ -93,19 +93,18 @@ const DragRectFigure = (props: Props) => {
     }
     
     useEffect(() => {
-        if (plotRef.current && props.image && !afterImageLayout.current) {
-            const xRange = props.layout.xaxis.range;
-            const yRange = props.layout.yaxis.range;
+        if (!plotRef.current || !initialLayout.current) {
+            return;
+        }
 
-            const xImageScale = (xRange[1] - xRange[0]) / props.image.width;
-            const yImageScale = (yRange[1] - yRange[0]) / props.image.height;
-
-            const x0 = props.xy ? xRange[0] + (props.xy.x - props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 - props.rectWidth * xImageScale / 2;
-            const y0 = props.xy ? yRange[1] - (props.xy.y - props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 + props.rectHeight * yImageScale / 2;
-            const x1 = props.xy ? xRange[0] + (props.xy.x + props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 + props.rectWidth * xImageScale / 2;
-            const y1 = props.xy ? yRange[1] - (props.xy.y + props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 - props.rectHeight * yImageScale / 2;
-
+        if (props.image) {
             props.setProps({
+                data: [{
+                    x: [0, props.image.width],
+                    y: [0, props.image.height],
+                    mode: "markers",
+                    opacity: 0,
+                }],
                 layout: {
                     ...props.layout,
                     xaxis: {
@@ -113,12 +112,16 @@ const DragRectFigure = (props: Props) => {
                         showTickLabels: false,
                         showGrid: false,
                         zeroLine: false,
+                        visible: false,
+                        range: [0, props.image.width],
                     },
                     yaxis: {
                         ...props.layout.yaxis,
                         showTickLabels: false,
                         showGrid: false,
                         zeroline: false,
+                        visible: false,
+                        range: [0, props.image.height],
                     },
                     margin: {
                         l: 0,
@@ -131,43 +134,21 @@ const DragRectFigure = (props: Props) => {
                         source: props.image.imageData,
                         xref: 'x',
                         yref: 'y',
-                        x: props.layout.xaxis.range[0],
-                        y: props.layout.yaxis.range[1],
-                        sizex: props.layout.xaxis.range[1] - props.layout.xaxis.range[0],
-                        sizey: props.layout.yaxis.range[1] - props.layout.yaxis.range[0],
+                        x: 0,
+                        y: props.image.height,
+                        sizex: props.image.width,
+                        sizey: props.image.height,
+                        opacity: 1,
+                        layer: 'below',
+                        sizing: 'stretch',
                     }],
-                    shapes: [{
-                        type: 'rect',
-                        xref: 'x',
-                        yref: 'y',
-                        x0: x0,
-                        y0: y0,
-                        x1: x1,
-                        y1: y1,
-                        line: {
-                            color: props.rectColor,
-                        },
-                        editable: true,
-                    }]
                 }
             });
-
-            afterImageLayout.current = {
-                xaxis: {
-                    range: JSON.parse(JSON.stringify(plotRef.current._fullLayout.xaxis.range)),
-                    _length: plotRef.current._fullLayout.xaxis._length
-                },
-                yaxis: {
-                    range: JSON.parse(JSON.stringify(plotRef.current._fullLayout.yaxis.range)),
-                    _length: plotRef.current._fullLayout.yaxis._length
-                }
-            }
-        } else if (initialLayout.current) {
-            // console.log('Reset layout', initialLayout.current);
+        } else {
             rectRef.current = null;
-            afterImageLayout.current = null;
             // Reset layout when image is removed
             props.setProps({
+                data: [],
                 layout: {
                     ...initialLayout.current,
                     width: width,
@@ -176,6 +157,42 @@ const DragRectFigure = (props: Props) => {
             });
         }
     }, [props.image]);
+
+    useEffect(() => {
+        if (!plotRef.current || !props.image || !props.isWithRect) {
+            return;
+        }
+
+        const xRange = props.layout.xaxis.range;
+        const yRange = props.layout.yaxis.range;
+
+        const xImageScale = (xRange[1] - xRange[0]) / props.image.width;
+        const yImageScale = (yRange[1] - yRange[0]) / props.image.height;
+
+        const x0 = props.xy ? xRange[0] + (props.xy.x - props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 - props.rectWidth * xImageScale / 2;
+        const y0 = props.xy ? yRange[1] - (props.xy.y - props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 + props.rectHeight * yImageScale / 2;
+        const x1 = props.xy ? xRange[0] + (props.xy.x + props.rectWidth / 2) * xImageScale : (xRange[0] + xRange[1]) / 2 + props.rectWidth * xImageScale / 2;
+        const y1 = props.xy ? yRange[1] - (props.xy.y + props.rectHeight / 2) * yImageScale : (yRange[0] + yRange[1]) / 2 - props.rectHeight * yImageScale / 2;
+        
+        props.setProps({
+            layout: {
+                ...props.layout,
+                shapes: [{
+                    type: 'rect',
+                    xref: 'x',
+                    yref: 'y',
+                    x0: x0,
+                    y0: y0,
+                    x1: x1,
+                    y1: y1,
+                    line: {
+                        color: props.rectColor,
+                    },
+                    editable: true,
+                }]
+            }
+        });
+    }, [props.isWithRect]);
 
     useLayoutEffect(() => {
         if (plotRef.current && props.layout.shapes && !rectRef.current) {
@@ -190,10 +207,22 @@ const DragRectFigure = (props: Props) => {
         // console.log('Initialized');
         plotRef.current = graphDiv;
         initialLayout.current = {
-            ...JSON.parse(JSON.stringify(props.layout)),
+            ...props.layout,
+            xaxis: {
+                ...props.layout.xaxis,
+                range: JSON.parse(JSON.stringify(props.layout.xaxis.range)),
+                scaleratio: 1,
+            },
+            yaxis: {
+                ...props.layout.yaxis,
+                range: JSON.parse(JSON.stringify(props.layout.yaxis.range)),
+                scaleratio: 1,
+                scaleanchor: 'x',
+            },
             width: graphDiv.clientWidth,
             height: graphDiv.clientHeight,
         };
+        props.setProps({layout: initialLayout.current});
     }
 
     const handleRelayout = (event) => {
@@ -212,16 +241,13 @@ const DragRectFigure = (props: Props) => {
 
     useEffect(() => {
         if (props.getXY) {
-            if (rectRef.current && afterImageLayout.current) {
+            if (rectRef.current) {
                 const xy = {
                     x: (Number(props.layout.shapes[0].x0) + Number(props.layout.shapes[0].x1)) / 2,
                     y: (Number(props.layout.shapes[0].y0) + Number(props.layout.shapes[0].y1)) / 2
                 };
                 
-                const xImageScale = (afterImageLayout.current.xaxis.range[1] - afterImageLayout.current.xaxis.range[0]) / props.image.width;
-                const yImageScale = (afterImageLayout.current.yaxis.range[1] - afterImageLayout.current.yaxis.range[0]) / props.image.height;
-                
-                props.setProps({xy: {x: (xy.x - afterImageLayout.current.xaxis.range[0]) / xImageScale, y: (afterImageLayout.current.yaxis.range[1] - xy.y) / yImageScale}});
+                props.setProps({xy: {x: xy.x, y: props.image.height - xy.y}});
             }
             props.setProps({getXY: false});
         }
@@ -255,6 +281,7 @@ const DragRectFigure = (props: Props) => {
                 onInitialized={handleInitialized}
                 onUpdate={handleOnUpdate}
                 onRelayout={handleRelayout}
+                config={{doubleClick: 'reset'}}
                 {...restProps}
             />
         </div>
@@ -262,6 +289,9 @@ const DragRectFigure = (props: Props) => {
 }
 
 DragRectFigure.defaultProps = {
+    data: [],
+    layout: {},
+    isWithRect: false,
     rectWidth: 200,
     rectHeight: 200,
     rectColor: 'black',
