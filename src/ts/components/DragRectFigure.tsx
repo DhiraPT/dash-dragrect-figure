@@ -190,7 +190,7 @@ const DragRectFigure = (props: Props) => {
     }, [props.image]);
 
     useEffect(() => {
-        if (!plotRef.current || !props.image || !props.isWithRect) {
+        if (!plotRef.current || !props.image) {
             return;
         }
 
@@ -220,6 +220,7 @@ const DragRectFigure = (props: Props) => {
                 }
             });
         } else {
+            rectRef.current = null;
             props.setProps({
                 layout: {
                     ...props.layout,
@@ -257,7 +258,7 @@ const DragRectFigure = (props: Props) => {
             width: graphDiv.clientWidth,
             height: graphDiv.clientHeight,
         };
-        props.setProps({layout: initialLayout.current, config: {doubleClick: 'reset'}});
+        props.setProps({layout: initialLayout.current});
     }
 
     const handleRelayout = (event) => {
@@ -281,8 +282,9 @@ const DragRectFigure = (props: Props) => {
                     x: (Number(props.layout.shapes[props.nonEditableRects.length].x0) + Number(props.layout.shapes[props.nonEditableRects.length].x1)) / 2,
                     y: (Number(props.layout.shapes[props.nonEditableRects.length].y0) + Number(props.layout.shapes[props.nonEditableRects.length].y1)) / 2
                 };
-                
                 props.setProps({xy: {x: xy.x, y: props.image.height - xy.y}});
+            } else {
+                props.setProps({xy: null});
             }
             props.setProps({getXY: false});
         }
