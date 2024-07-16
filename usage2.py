@@ -14,6 +14,7 @@ app.layout = dbc.Container(children=[
             dash_dragrect_figure.DragRectFigure(
                 id='component',
                 xy={'x': 200, 'y': 200},
+                nonEditableRects=[{'x': 500, 'y': 500, 'width': 500, 'height': 300}],
                 style={'width': '100%', 'aspectRatio': '4208/3120'},
             ),
             html.Div(id='modal-container')
