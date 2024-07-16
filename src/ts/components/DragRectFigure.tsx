@@ -137,7 +137,6 @@ const DragRectFigure = (props: Props) => {
                 layout: {
                     ...props.layout,
                     xaxis: {
-                        ...props.layout.xaxis,
                         showTickLabels: false,
                         showGrid: false,
                         zeroLine: false,
@@ -145,7 +144,6 @@ const DragRectFigure = (props: Props) => {
                         range: [0, props.image.width],
                     },
                     yaxis: {
-                        ...props.layout.yaxis,
                         showTickLabels: false,
                         showGrid: false,
                         zeroline: false,
@@ -245,12 +243,10 @@ const DragRectFigure = (props: Props) => {
         initialLayout.current = {
             ...props.layout,
             xaxis: {
-                ...props.layout.xaxis,
                 range: JSON.parse(JSON.stringify(props.layout.xaxis.range)),
                 scaleratio: 1,
             },
             yaxis: {
-                ...props.layout.yaxis,
                 range: JSON.parse(JSON.stringify(props.layout.yaxis.range)),
                 scaleratio: 1,
                 scaleanchor: 'x',
