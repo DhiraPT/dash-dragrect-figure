@@ -329,7 +329,7 @@ DragRectFigure.defaultProps = {
     isWithRect: false,
     rectWidth: 200,
     rectHeight: 200,
-    rectColor: 'green',
+    rectColor: '#95fc17',
     nonEditableRects: [],
     image: null,
     getXY: false,
