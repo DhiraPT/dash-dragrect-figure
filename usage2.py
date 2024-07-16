@@ -24,7 +24,6 @@ app.layout = dbc.Container(children=[
         dbc.Button('Add', id='btn-add', color='primary', className='me-2'),
         dbc.Button('Edit', id='btn-edit', color='primary'),
         dbc.Button('Add Rect', id='btn-add-rect', color='primary', className='ms-2'),
-        dbc.Button('Get XY', id='get-xy-button', color='primary'),
     ])
 ])])
 
@@ -132,16 +131,6 @@ def get_xy(xy):
     if xy:
         return f'x: {xy["x"]}, y: {xy["y"]}'
     return 'x: , y: '
-
-
-@app.callback(
-    Output('component', 'getXY'),
-    Input('get-xy-button', 'n_clicks')
-)
-def trigger_get_xy(n_clicks):
-    if n_clicks:
-        return True
-    return False
 
 
 if __name__ == '__main__':

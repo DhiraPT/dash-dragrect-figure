@@ -15,7 +15,6 @@ type Props = {
         width: number;
         height: number;
     } | null;
-    getXY: boolean;
     xy: { x: number, y: number } | null;
 } & DashComponentProps & PlotParams;
 
@@ -222,6 +221,7 @@ const DragRectFigure = (props: Props) => {
         } else {
             rectRef.current = null;
             props.setProps({
+                xy: null,
                 layout: {
                     ...props.layout,
                     shapes: [...props.layout.shapes.filter(shape => shape.name !== 'current')]
@@ -266,6 +266,14 @@ const DragRectFigure = (props: Props) => {
         attachEventListeners();
         // Remove outline controllers after a relayout event
         removeOutlineControllers();
+        // Update the xy coordinates of the rectangle
+        if (rectRef.current) {
+            const xy = {
+                x: (Number(props.layout.shapes[props.nonEditableRects.length].x0) + Number(props.layout.shapes[props.nonEditableRects.length].x1)) / 2,
+                y: (Number(props.layout.shapes[props.nonEditableRects.length].y0) + Number(props.layout.shapes[props.nonEditableRects.length].y1)) / 2
+            };
+            props.setProps({ xy: { x: xy.x, y: props.image.height - xy.y } });
+        }
     }
 
     const handleOnUpdate = (figure) => {
@@ -274,21 +282,6 @@ const DragRectFigure = (props: Props) => {
         // Remove outline controllers after an update event
         removeOutlineControllers();
     }
-
-    useEffect(() => {
-        if (props.getXY) {
-            if (rectRef.current) {
-                const xy = {
-                    x: (Number(props.layout.shapes[props.nonEditableRects.length].x0) + Number(props.layout.shapes[props.nonEditableRects.length].x1)) / 2,
-                    y: (Number(props.layout.shapes[props.nonEditableRects.length].y0) + Number(props.layout.shapes[props.nonEditableRects.length].y1)) / 2
-                };
-                props.setProps({xy: {x: xy.x, y: props.image.height - xy.y}});
-            } else {
-                props.setProps({xy: null});
-            }
-            props.setProps({getXY: false});
-        }
-    }, [props.getXY]);
 
     useEffect(() => {
         if (!plotRef.current) {
@@ -334,7 +327,6 @@ DragRectFigure.defaultProps = {
     rectColor: '#95fc17',
     nonEditableRects: [],
     image: null,
-    getXY: false,
     xy: null,
 };
 
