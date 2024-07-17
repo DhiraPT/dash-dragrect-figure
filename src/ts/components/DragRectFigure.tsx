@@ -195,6 +195,7 @@ const DragRectFigure = (props: Props) => {
             const {x0, y0, x1, y1} = calculateCorners(props.xy ? props.xy.x : props.image.width / 2, props.xy ? props.xy.y : props.image.height / 2, props.rectWidth, props.rectHeight);
             
             props.setProps({
+                xy: props.xy ? props.xy : { x: props.image.width / 2, y: props.image.height / 2 },
                 layout: {
                     ...props.layout,
                     shapes: [
@@ -226,7 +227,7 @@ const DragRectFigure = (props: Props) => {
                 }
             });
         }
-    }, [props.isWithRect, props.rectWidth, props.rectHeight]);
+    }, [props.isWithRect, props.rectWidth, props.rectHeight, props.xy]);
 
     useLayoutEffect(() => {
         if (plotRef.current && props.layout.shapes && props.isWithRect && !rectRef.current) {
