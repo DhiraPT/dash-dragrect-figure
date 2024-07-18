@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DashComponentProps } from '../props';
 import Plot, { PlotParams } from 'react-plotly.js';
-import Plotly from 'plotly.js';
+import Plotly, { Shape } from 'plotly.js';
 import { useResizeDetector } from 'react-resize-detector';
 
 type Props = {
@@ -127,6 +127,37 @@ const DragRectFigure = (props: Props) => {
                 };
             });
 
+            let shapes = [];
+
+            if (props.isWithRect) {
+                const {x0, y0, x1, y1} = calculateCorners(
+                    props.xy ? props.xy.x : props.image.width / 2,
+                    props.xy ? props.xy.y : props.image.height / 2,
+                    props.rectWidth,
+                    props.rectHeight
+                );
+
+                shapes = [
+                    ...nonEditableShapes,
+                    {
+                        name: 'current',
+                        type: 'rect',
+                        xref: 'x',
+                        yref: 'y',
+                        x0: x0,
+                        y0: y0,
+                        x1: x1,
+                        y1: y1,
+                        line: {
+                            color: props.rectColor,
+                        },
+                        editable: true,
+                    }
+                ];
+            } else {
+                shapes = [...nonEditableShapes];
+            }
+
             props.setProps({
                 data: [{
                     x: [0, props.image.width],
@@ -169,8 +200,9 @@ const DragRectFigure = (props: Props) => {
                         layer: 'below',
                         sizing: 'stretch',
                     }],
-                    shapes : [...nonEditableShapes],
-                }
+                    shapes: shapes,
+                },
+                xy: props.xy ? props.xy : (props.isWithRect ? { x: props.image.width / 2, y: props.image.height / 2 } : null),
             });
         } else {
             rectRef.current = null;
@@ -181,53 +213,11 @@ const DragRectFigure = (props: Props) => {
                     ...initialLayout.current,
                     width: width,
                     height: calculateHeight(width),
-                }
-            });
-        }
-    }, [props.image]);
-
-    useEffect(() => {
-        if (!plotRef.current || !props.image) {
-            return;
-        }
-
-        if (props.isWithRect) {
-            const {x0, y0, x1, y1} = calculateCorners(props.xy ? props.xy.x : props.image.width / 2, props.xy ? props.xy.y : props.image.height / 2, props.rectWidth, props.rectHeight);
-            
-            props.setProps({
-                xy: props.xy ? props.xy : { x: props.image.width / 2, y: props.image.height / 2 },
-                layout: {
-                    ...props.layout,
-                    shapes: [
-                        ...props.layout.shapes.filter(shape => shape.name !== 'current'),
-                        {
-                            name: 'current',
-                            type: 'rect',
-                            xref: 'x',
-                            yref: 'y',
-                            x0: x0,
-                            y0: y0,
-                            x1: x1,
-                            y1: y1,
-                            line: {
-                                color: props.rectColor,
-                            },
-                            editable: true,
-                        },
-                    ]
-                }
-            });
-        } else {
-            rectRef.current = null;
-            props.setProps({
+                },
                 xy: null,
-                layout: {
-                    ...props.layout,
-                    shapes: [...props.layout.shapes.filter(shape => shape.name !== 'current')]
-                }
             });
         }
-    }, [props.isWithRect, props.rectWidth, props.rectHeight, props.xy]);
+    }, [props.image, props.isWithRect, props.rectWidth, props.rectHeight, props.xy]);
 
     useLayoutEffect(() => {
         if (plotRef.current && props.layout.shapes && props.isWithRect && !rectRef.current) {
