@@ -168,6 +168,7 @@ const DragRectFigure = (props: Props) => {
                 layout: {
                     ...props.layout,
                     xaxis: {
+                        scaleratio: 1,
                         showTickLabels: false,
                         showGrid: false,
                         zeroLine: false,
@@ -175,6 +176,8 @@ const DragRectFigure = (props: Props) => {
                         range: [0, props.image.width],
                     },
                     yaxis: {
+                        scaleratio: 1,
+                        scaleanchor: 'x',
                         showTickLabels: false,
                         showGrid: false,
                         zeroline: false,
